@@ -1,0 +1,115 @@
+---
+title: "CS770Final"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem 1
+ The black_politicians data were collected via a field experiment where the author 
+sent fictional emails purportedly sent by Black people to legislators in the United States. The experiment 
+sought to determine whether the effect of the email being from "out-of-district" (someone who can’t vote 
+for you and so provides no extrinsic motivation to reply) would have a smaller effect on response rates for 
+Black legislators than for non-Black ones, providing evidence of additional intrinsic motivation on the 
+part of Black legislators to help Black people. Implement the proper causal inference analysis for this 
+dataset. 
+
+```{r problem1}
+library(boot); library(tidyverse)
+br <- causaldata::black_politicians
+
+# Function to do IPW estimation with regression adjustment
+ipwra <- function(br, index = 1:nrow(br)) {
+    # Apply bootstrap index
+    br <- br %>% slice(index)
+    
+    # estimate and predict propensity score
+    m <- glm(leg_black ~ medianhhincom + blackpercent + leg_democrat,
+             data = br, family = binomial(link = 'logit'))
+    br <- br %>%
+        mutate(ps = predict(m, type = 'response'))
+    
+    # Trim control observations outside of treated PS range
+    minps <- br %>%
+        filter(leg_black == 1) %>%
+        pull(ps) %>%
+        min(na.rm = TRUE)
+    maxps <- br %>%
+        filter(leg_black == 1) %>%
+        pull(ps) %>%
+        max(na.rm = TRUE)
+    br <- br %>%
+        filter(ps >= minps & ps <= maxps)
+    
+    # Create IPW weights
+    br <- br %>%
+        mutate(ipw = case_when(
+        leg_black == 1 ~ 1/ps,
+        leg_black == 0 ~ 1/(1-ps)))
+    
+    # Estimate difference
+    w_means <- br %>% 
+        group_by(leg_black) %>%
+        summarize(m = weighted.mean(responded, w = ipw)) %>%
+        arrange(leg_black)
+    
+    return(w_means$m[2] - w_means$m[1])
+}
+
+
+b <- boot(br, ipwra, R = 200)
+# See estimate and standard error
+b
+```
+
+## Problem 2
+
+The close-college data is used to estimate the effect of college education on 
+earnings, using the presence of a nearby (in-county) college as an instrument for college attendance. 
+Implement the proper causal inference analysis for this dataset.
+
+take example from book. Do causal inference. Use nearc4 as instrument
+```{r prob2}
+cc <- causaldata::close_college
+```
+
+## Problem 3
+
+The social-insure data is used to estimate the effect of a two-round social network-
+based experiment on getting farmers to get insurance. Implement the proper causal inference analysis for 
+this dataset. 
+
+
+```{r prob3}
+si <- causaldata::social_insure
+
+```
+
+## Problem 4
+
+The texas data looks at the massive expansion in prison capacity in Texas that 
+occurred in 1993 under Governor Ann Richards, and the effect of that expansion on the number of Black 
+men in prison. Implement the proper causal inference analysis for this dataset.
+
+```{r prob4}
+t <- causaldata::texas
+
+```
+
+## Problem 5
+
+Consider the structural nested model, $E(Y^a -Y^{a=0} | A=a, L) = \beta_1 a$. A consistent 
+estimator of the casual effect of treatment $\beta_1$  can be obtained via g-estimation. In particular, the estimator 
+of $\beta_1$  is the value of $H(\psi^+)=Y-\psi^+A$  that minimizes the association between $H(\psi^+)$ and  $A$. This 
+value can be found through a grid search (We did it in class to find the causal effect of smoking cessation 
+using the nhefs dataset. We also used the grid search values to create 95\% confidence interval for the 
+causal effect of treatment by including in it all values from the grid search with p-values greater than 
+0.05). 
+
+$$
+\begin{align*}
+x = 0
+\end{align*}
+$$
