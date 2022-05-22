@@ -83,8 +83,24 @@ this dataset.
 
 
 ```{r prob3}
-si <- causaldata::social_insure
+library(modelsummary); library(gmm)
+d <- causaldata::social_insure
+# Remove all missing observations ourselves
+d <- d %>%
+    select(takeup_survey, male, age, agpop, ricearea_2010,
+           literacy, intensive, risk_averse, disaster_prob,
+           village, address, pre_takeup_rate, default) %>%
+    na.omit()
 
+m <- gmm(takeup_survey ~ male + age + agpop + ricearea_2010 +
+         literacy + intensive + risk_averse + disaster_prob +
+         factor(village) + pre_takeup_rate,
+         ~ male + age + agpop + ricearea_2010 +
+         literacy + intensive + risk_averse + disaster_prob +
+         factor(village) + default, data = d)
+
+# We can apply the address clustering most easily in msummary
+msummary(m, vcov = ~address, stars = c('*' = .1, '**' = .05, '***' = .01))
 ```
 
 ## Problem 4
@@ -106,7 +122,17 @@ of $\beta_1$  is the value of $H(\psi^+)=Y-\psi^+A$  that minimizes the associat
 value can be found through a grid search (We did it in class to find the causal effect of smoking cessation 
 using the nhefs dataset. We also used the grid search values to create 95\% confidence interval for the 
 causal effect of treatment by including in it all values from the grid search with p-values greater than 
-0.05). 
+0.05).
+
+### Part A
+
+$$
+\begin{align*}
+x = 0
+\end{align*}
+$$
+
+### Part B
 
 $$
 \begin{align*}
