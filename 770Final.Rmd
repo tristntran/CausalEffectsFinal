@@ -121,46 +121,24 @@ occurred in 1993 under Governor Ann Richards, and the effect of that expansion o
 men in prison. Implement the proper causal inference analysis for this dataset.
 
 ```{r prob4}
-t <- causaldata::texas
-
 library(tidyverse)
 library(haven)
 library(estimatr)
+library(dplyr)
+texas <- causaldata::texas
 
-read_data <- function(df)
-{
-  full_path <- paste("https://raw.github.com/scunning1975/mixtape/master/", 
-                     df, sep = "")
-  df <- read_dta(full_path)
-  return(df)
-}
 
-abortion <- read_data("abortion.dta") %>% 
+texas_prison <- texas %>% 
   mutate(
-    repeal = as_factor(repeal),
     year   = as_factor(year),
-    fip    = as_factor(fip),
-    fa     = as_factor(fa),
+    statefip    = as_factor(statefip),
+    state = as_factor(state)
   )
 
-reg <- abortion %>% 
-  filter(bf15 == 1) %>% 
-  lm_robust(lnr ~ repeal*year + fip + acc + ir + pi + alcohol+ crack + poverty+ income+ ur,
-            data = ., weights = totpop, clusters = fip)
-#weight is pct of aa population, clusters is statefip
-abortion_plot <- tibble(
-  sd = reg[[2]][76:90],
-  mean = reg[[1]][76:90],
-  year = c(1986:2000))
-
-abortion_plot %>% 
-  ggplot(aes(x = year, y = mean)) + 
-  geom_rect(aes(xmin=1986, xmax=1992, ymin=-Inf, ymax=Inf), fill = "cyan", alpha = 0.01)+
-  geom_point()+
-  geom_text(aes(label = year), hjust=-0.002, vjust = -0.03)+
-  geom_hline(yintercept = 0) +
-  geom_errorbar(aes(ymin = mean - sd*1.96, ymax = mean + sd*1.96), width = 0.2,
-                position = position_dodge(0.05))
+reg <- texas_prison %>% 
+  lm_robust(bmprison ~ year + statefip + wmprison + alcohol +income + ur + poverty + perc1519 + aidscapita + state + poverty,
+            data = ., weights = black, clusters = statefip)
+reg
 ```
 
 ## Problem 5
@@ -175,12 +153,16 @@ causal effect of treatment by including in it all values from the grid search wi
 
 ### Part A
 
-Show that the estimator of the casual effect of treatment, 1β, can be also be obtained by solving the following estimating equation,
+Show that the estimator of the casual effect of treatment, $\beta_1$, can be also be obtained by solving the following estimating equation,
 \[\sum_{i=1}^n I (C_i = 0)W_i^CH_i(\psi^+)[A_i - E(A|L_i)]=0\]
 
+
+We can find the coefficient $\beta_1$ by finding the value of $H_i(\psi^+)$ that satisfies the above formula. We estimate $E(A|L_i)$ using a logistical model and estimate that its value is $Pr[A=1|L_i]$. Using the fact $H_i(\psi^+)=Y_i - \psi^+A_i$ we obtain that
 $$
 \begin{align*}
-x = 0
+\psi^+= \frac
+{\sum_{i=1}^n I (C_i = 0)W_i^C Y_i[A_i - E(A|L_i)]}
+{\sum_{i=1}^n I (C_i = 0)W_i^C A_i[A_i - E(A|L_i)]}
 \end{align*}
 $$
 
@@ -195,11 +177,11 @@ $$
 \begin{align*}
 H(\psi^+)&=Y-\psi^+A\\
 H(\psi^+)&=Y- 
-\frac{\sum_{i=1}^n I (C_i = 0)W_i^C Y_i[A_i - E(A|L_i)]}{\sum_{i=1}^n I (C_i = 0)W_i^C A_i[A_i - E(A|L_i)]}A
-\end{align*}
+\frac{\sum_{i=1}^n I (C_i = 0)W_i^C Y_i[A_i - E(A|L_i)]}{\sum_{i=1}^n I (C_i = 0)W_i^C A_i[A_i - E(A|L_i)]}A\\
 &= Y- 
 \frac{\sum_{i=1}^n I (C_i = 0)W_i^C Y_i[A_i - E(A|L_i)]}{\sum_{i=1}^n I (C_i = 0)W_i^C A_i[A_i - E(A|L_i)]}A
-\end{align*}\\
+\\
 H(\psi^+) &= Y-Y\\
 &=0
+\end{align*}
 $$
