@@ -73,6 +73,15 @@ Implement the proper causal inference analysis for this dataset.
 take example from book. Do causal inference. Use nearc4 as instrument
 ```{r prob2}
 cc <- causaldata::close_college
+# for simplicity, ignore subjects with missing outcome or missing instrument
+cc.iv <- cc[which(!is.na(cc$educ) & !is.na(cc$lwage) & !is.na(cc$nearc4)),]
+summary(cc.iv)
+
+
+
+table(cc.iv$nearc4, cc.iv$lwage)
+
+t.test(wt82_71 ~ highprice, data=nhefs.iv)
 ```
 
 ## Problem 3
