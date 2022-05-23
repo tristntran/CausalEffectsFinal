@@ -188,7 +188,8 @@ $$
 
 \[\psi^+= \frac
 {\sum_{i=1}^n I (C_i = 0)W_i^C Y_i[A_i - E(A|L_i)]}
-{\sum_{i=1}^n I (C_i = 0)W_i^C A_i[A_i - E(A|L_i)]}\]
+{\sum_{i=1}^n I (C_i = 0)W_i^C A_i[A_i - E(A|L_i)]}
+\]
 
 $$
 \begin{align*}
@@ -196,4 +197,9 @@ H(\psi^+)&=Y-\psi^+A\\
 H(\psi^+)&=Y- 
 \frac{\sum_{i=1}^n I (C_i = 0)W_i^C Y_i[A_i - E(A|L_i)]}{\sum_{i=1}^n I (C_i = 0)W_i^C A_i[A_i - E(A|L_i)]}A
 \end{align*}
+&= Y- 
+\frac{\sum_{i=1}^n I (C_i = 0)W_i^C Y_i[A_i - E(A|L_i)]}{\sum_{i=1}^n I (C_i = 0)W_i^C A_i[A_i - E(A|L_i)]}A
+\end{align*}\\
+H(\psi^+) &= Y-Y\\
+&=0
 $$
