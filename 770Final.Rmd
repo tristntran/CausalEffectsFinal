@@ -17,7 +17,7 @@ part of Black legislators to help Black people. Implement the proper causal infe
 dataset. 
 
 ```{r problem1}
-library(boot); library(tidyverse)
+library(boot); library(tidyverse); library(dplyr)
 br <- causaldata::black_politicians
 
 # Function to do IPW estimation with regression adjustment
@@ -77,11 +77,13 @@ cc <- causaldata::close_college
 cc.iv <- cc[which(!is.na(cc$educ) & !is.na(cc$lwage) & !is.na(cc$nearc4)),]
 summary(cc.iv)
 
+t.test(lwage ~ nearc4, data=cc.iv)
 
+library(sem) 
 
-table(cc.iv$nearc4, cc.iv$lwage)
-
-t.test(wt82_71 ~ highprice, data=nhefs.iv)
+model1 <- tsls(lwage ~ educ, ~ nearc4, data = cc.iv)
+summary(model1)
+confint(model1)  # note the wide confidence intervals
 ```
 
 ## Problem 3
@@ -121,6 +123,44 @@ men in prison. Implement the proper causal inference analysis for this dataset.
 ```{r prob4}
 t <- causaldata::texas
 
+library(tidyverse)
+library(haven)
+library(estimatr)
+
+read_data <- function(df)
+{
+  full_path <- paste("https://raw.github.com/scunning1975/mixtape/master/", 
+                     df, sep = "")
+  df <- read_dta(full_path)
+  return(df)
+}
+
+abortion <- read_data("abortion.dta") %>% 
+  mutate(
+    repeal = as_factor(repeal),
+    year   = as_factor(year),
+    fip    = as_factor(fip),
+    fa     = as_factor(fa),
+  )
+
+reg <- abortion %>% 
+  filter(bf15 == 1) %>% 
+  lm_robust(lnr ~ repeal*year + fip + acc + ir + pi + alcohol+ crack + poverty+ income+ ur,
+            data = ., weights = totpop, clusters = fip)
+#weight is pct of aa population, clusters is statefip
+abortion_plot <- tibble(
+  sd = reg[[2]][76:90],
+  mean = reg[[1]][76:90],
+  year = c(1986:2000))
+
+abortion_plot %>% 
+  ggplot(aes(x = year, y = mean)) + 
+  geom_rect(aes(xmin=1986, xmax=1992, ymin=-Inf, ymax=Inf), fill = "cyan", alpha = 0.01)+
+  geom_point()+
+  geom_text(aes(label = year), hjust=-0.002, vjust = -0.03)+
+  geom_hline(yintercept = 0) +
+  geom_errorbar(aes(ymin = mean - sd*1.96, ymax = mean + sd*1.96), width = 0.2,
+                position = position_dodge(0.05))
 ```
 
 ## Problem 5
@@ -135,6 +175,9 @@ causal effect of treatment by including in it all values from the grid search wi
 
 ### Part A
 
+Show that the estimator of the casual effect of treatment, 1β, can be also be obtained by solving the following estimating equation,
+\[\sum_{i=1}^n I (C_i = 0)W_i^CH_i(\psi^+)[A_i - E(A|L_i)]=0\]
+
 $$
 \begin{align*}
 x = 0
@@ -143,8 +186,14 @@ $$
 
 ### Part B
 
+\[\psi^+= \frac
+{\sum_{i=1}^n I (C_i = 0)W_i^C Y_i[A_i - E(A|L_i)]}
+{\sum_{i=1}^n I (C_i = 0)W_i^C A_i[A_i - E(A|L_i)]}\]
+
 $$
 \begin{align*}
-x = 0
+H(\psi^+)&=Y-\psi^+A\\
+H(\psi^+)&=Y- 
+\frac{\sum_{i=1}^n I (C_i = 0)W_i^C Y_i[A_i - E(A|L_i)]}{\sum_{i=1}^n I (C_i = 0)W_i^C A_i[A_i - E(A|L_i)]}A
 \end{align*}
 $$
